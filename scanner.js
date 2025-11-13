@@ -1,51 +1,85 @@
 (function() {
   'use strict';
-
+  
   // Prevent multiple instances
   if (document.getElementById('a11y-overlay')) {
     alert('Scanner already running!');
     return;
   }
 
-  // LibGuides-specific explanations
+  // ============= CONFIGURATION =============
   const ISSUE_EXPLANATIONS = {
     'image-alt': {title:'Images Missing Descriptions', plain:'Images need alternative text so screen readers can describe them to blind users.', howToFix:'In LibGuides editor: Click the image → Properties → Add description in "Alternative Text" field. Describe what the image shows.', priority:'critical', canFix:true},
     'decorative-image-role': {title:'Decorative Image Needs role="presentation"', plain:'This image has empty alt text (decorative), but should be explicitly marked with role="presentation" for screen readers.', howToFix:'In LibGuides editor: Click image → Properties → In the "Advanced" tab, add Attribute: role="presentation". Or add descriptive alt text if the image isn\'t decorative.', priority:'minor', canFix:true},
     'link-url-only-text': {title:'Links Use URLs as Text', plain:'These links display the full URL (like "http://proxy.lib...") instead of descriptive text. Screen reader users hear the entire URL read aloud.', howToFix:'In LibGuides editor: Highlight the link → Change the visible text to something descriptive like "View in ProQuest Database" while keeping the URL in the link target.', priority:'important', canFix:true},
     'image-no-alt': {title:'Images Missing Alt Attribute', plain:'These images have no alt attribute at all. Every image must have alt="" (if decorative) or descriptive alt text.', howToFix:'In LibGuides editor: Click image → Properties → Add alt text describing the image, or use alt="" if purely decorative.', priority:'critical', canFix:true},
     'image-alt-quality': {title:'Alt Text Quality Issues', plain:'Alt text contains problematic patterns: starts with phrases like "image of", is a filename, too long, or all caps.', howToFix:'Revise alt text. Remove leading phrases like "image of". Keep under 250 characters.', priority:'moderate', canFix:true},
-    'label': {title:'Form Fields Missing Labels', plain:'Search boxes and input fields need visible labels so users know what to enter.', howToFix:'Add a text label above the field, or contact [library-web-support@umich.edu](mailto:library-web-support@umich.edu) if it\'s a widget.', priority:'critical', canFix:true},
+    'label': {title:'Form Fields Missing Labels', plain:'Search boxes and input fields need visible labels so users know what to enter.', howToFix:'Add a text label above the field, or contact library-web-support@umich.edu if it\'s a widget.', priority:'critical', canFix:true},
     'link-name': {title:'Links Without Descriptive Text', plain:'Links need text that describes where they go. Avoid "click here" or "read more".', howToFix:'Change link text to be specific: "View Chemistry Guide" instead of "click here".', priority:'important', canFix:true},
     'empty-heading': {title:'Empty Headings', plain:'Headings must contain text. Empty headings confuse screen readers.', howToFix:'Add text to the heading or delete it.', priority:'critical', canFix:true},
     'heading-order': {title:'Heading Structure Problems', plain:'Headings should go in order (H1 → H2 → H3), not skip levels.', howToFix:'Change heading level in editor to correct sequence.', priority:'important', canFix:true},
     'color-contrast': {title:'Text Hard to Read (Low Contrast)', plain:'Text color doesn\'t stand out enough from background.', howToFix:'Use darker text colors or default styling.', priority:'important', canFix:true},
     'button-name': {title:'Buttons Without Labels', plain:'Buttons need text or labels that describe what they do.', howToFix:'Add text inside the button, or remove empty buttons.', priority:'critical', canFix:true},
-    'landmark-one-main': {title:'Multiple Main Content Areas', plain:'Page has multiple "main" regions. This is usually a LibGuides template issue.', howToFix:'SYSTEM ISSUE: Contact [library-web-support@umich.edu](mailto:library-web-support@umich.edu).', priority:'system', canFix:false},
+    'landmark-one-main': {title:'Multiple Main Content Areas', plain:'Page has multiple "main" regions. This is usually a LibGuides template issue.', howToFix:'SYSTEM ISSUE: Contact library-web-support@umich.edu.', priority:'system', canFix:false},
     'page-has-heading-one': {title:'Missing Main Page Title (H1)', plain:'Pages should have one H1 heading that describes the main content.', howToFix:'Check that your page title is set. Edit Page → Page Title field.', priority:'important', canFix:true},
     'region': {title:'Content Not in Proper Sections', plain:'Some content isn\'t inside proper page sections.', howToFix:'Put main content in center content boxes. May be partially a template issue.', priority:'minor', canFix:'partial'},
-    'landmark-banner-is-top-level': {title:'Banner Structure Issue', plain:'Page header structure problem - usually a LibGuides system issue.', howToFix:'SYSTEM ISSUE: You can ignore this or contact [library-web-support@umich.edu](mailto:library-web-support@umich.edu).', priority:'system', canFix:false}
+    'landmark-banner-is-top-level': {title:'Banner Structure Issue', plain:'Page header structure problem - usually a LibGuides system issue.', howToFix:'SYSTEM ISSUE: You can ignore this or contact library-web-support@umich.edu.', priority:'system', canFix:false}
   };
 
+  // ============= IMPROVED SCORING LOGIC =============
+  function calculateAccessibilityScore(violations) {
+    let score = 100;
+    
+    // Group violations by rule ID to cap per-issue-type deductions
+    const violationsByRule = {};
+    violations.forEach(v => {
+      if (!violationsByRule[v.id]) {
+        violationsByRule[v.id] = { impact: v.impact, count: 0 };
+      }
+      violationsByRule[v.id].count += v.nodes.length;
+    });
+    
+    // Calculate deductions with caps per rule type
+    Object.values(violationsByRule).forEach(rule => {
+      let deduction = 0;
+      const count = rule.count;
+      
+      // Base deduction per instance
+      if (rule.impact === 'critical') deduction = count * 8;      // Reduced from 15
+      else if (rule.impact === 'serious') deduction = count * 5;  // Reduced from 10
+      else if (rule.impact === 'moderate') deduction = count * 3; // Reduced from 5
+      else if (rule.impact === 'minor') deduction = count * 2;    // Reduced from 3
+      
+      // Cap maximum deduction per rule type to prevent one issue from dominating
+      const maxDeductionPerRule = {
+        'critical': 25,   // Max 25 points for any single critical issue type
+        'serious': 20,    // Max 20 points for any single serious issue type
+        'moderate': 15,   // Max 15 points for any single moderate issue type
+        'minor': 10       // Max 10 points for any single minor issue type
+      };
+      
+      deduction = Math.min(deduction, maxDeductionPerRule[rule.impact] || 15);
+      score -= deduction;
+    });
+    
+    // Apply a floor - even terrible pages should show some score
+    // This helps distinguish between "bad" (30) and "very bad" (15)
+    score = Math.max(15, score);
+    
+    return Math.round(score);
+  }
   function getExplanation(ruleId){
     if(ISSUE_EXPLANATIONS[ruleId]) return ISSUE_EXPLANATIONS[ruleId];
     for(let key in ISSUE_EXPLANATIONS) if(ruleId.includes(key)||key.includes(ruleId)) return ISSUE_EXPLANATIONS[key];
     return {title:'Accessibility Issue', plain:'This element has an accessibility problem.', howToFix:'Review the technical description below for details.', priority:'important', canFix:true};
   }
 
-  // Updated highlight function: highlights ALL elements for given selectors array
   function highlightAllElements(selectors){
     document.querySelectorAll('.a11y-highlight').forEach(el=>el.classList.remove('a11y-highlight'));
     if(!document.getElementById('a11y-highlight-style')){
       const style=document.createElement('style');
       style.id='a11y-highlight-style';
-      style.textContent=`
-        .a11y-highlight {
-          outline: 4px solid #ffcb05 !important;
-          outline-offset: 2px !important;
-          background: rgba(255, 203, 5, 0.1) !important;
-          scroll-margin: 100px;
-        }
-      `;
+      style.textContent=`.a11y-highlight {outline: 4px solid #ffcb05 !important;outline-offset: 2px !important;background: rgba(255, 203, 5, 0.1) !important;scroll-margin: 100px;}`;
       document.head.appendChild(style);
     }
     let successCount = 0;
@@ -134,6 +168,157 @@
     return document;
   }
 
+  // ============= MULTI-PAGE DISCOVERY =============
+  function discoverGuidePages() {
+    const currentGuideId = window.location.href.match(/g=(\d+)/)?.[1];
+    
+    if (!currentGuideId) {
+      return [{ title: document.title || 'Current Page', url: window.location.href }];
+    }
+    
+    const guidePages = Array.from(document.querySelectorAll('a'))
+      .filter(link => {
+        if (!link.href.includes(`g=${currentGuideId}`) || !link.href.includes('&p=')) return false;
+        const text = link.textContent.trim().toLowerCase();
+        if (text.includes('skip to') || text.includes('next:') || text.includes('previous:') || link.href.includes('#')) return false;
+        return true;
+      })
+      .map(link => ({
+        title: link.textContent.trim() || 'Untitled Page',
+        url: link.href.split('#')[0]
+      }));
+    
+    // Remove duplicates
+    const uniquePages = Array.from(new Map(guidePages.map(p => [p.url, p])).values());
+    
+    return uniquePages.length > 0 ? uniquePages : [{ title: document.title || 'Current Page', url: window.location.href }];
+  }
+
+  // ============= MULTI-PAGE SCANNER =============
+  async function scanMultiplePages(pages) {
+    const results = [];
+    const totalPages = pages.length;
+    let scannedCount = 0;
+    
+    // Scan pages in batches of 3 to avoid overwhelming browser
+    const batchSize = 3;
+    
+    for (let i = 0; i < pages.length; i += batchSize) {
+      const batch = pages.slice(i, i + batchSize);
+      const batchPromises = batch.map(page => scanPageInIframe(page, scannedCount, totalPages));
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      batchResults.forEach((result, idx) => {
+        scannedCount++;
+        updateProgress(scannedCount, totalPages);
+        
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          results.push({
+            page: batch[idx],
+            violations: [],
+            error: result.reason.message || 'Failed to scan page'
+          });
+        }
+      });
+    }
+    
+    return results;
+  }
+
+  function scanPageInIframe(page, current, total) {
+    return new Promise((resolve, reject) => {
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;visibility:hidden;';
+      iframe.src = page.url;
+      
+      const timeout = setTimeout(() => {
+        iframe.remove();
+        reject(new Error('Timeout'));
+      }, 15000); // 15 second timeout per page
+      
+      iframe.onload = async function() {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const container = iframeDoc.querySelector('#s-lg-guide-main') || iframeDoc.querySelector('#s-lg-content') || iframeDoc.body;
+          
+          // Load axe in iframe if needed
+          if (typeof iframe.contentWindow.axe === 'undefined') {
+            await loadAxeInIframe(iframe);
+          }
+          
+          // Run axe scan
+          const axeResults = await iframe.contentWindow.axe.run(container, {
+            runOnly: ['wcag2a', 'wcag2aa', 'best-practice'],
+            resultTypes: ['violations']
+          });
+          
+          // Run custom checks (need to inject our function)
+          const customResults = await runCustomChecksInIframe(iframe, container);
+          
+          clearTimeout(timeout);
+          iframe.remove();
+          
+          resolve({
+            page: page,
+            violations: [...axeResults.violations, ...customResults]
+          });
+        } catch (err) {
+          clearTimeout(timeout);
+          iframe.remove();
+          reject(err);
+        }
+      };
+      
+      iframe.onerror = function() {
+        clearTimeout(timeout);
+        iframe.remove();
+        reject(new Error('Failed to load page'));
+      };
+      
+      document.body.appendChild(iframe);
+    });
+  }
+
+  function loadAxeInIframe(iframe) {
+    return new Promise((resolve, reject) => {
+      const script = iframe.contentDocument.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      iframe.contentDocument.head.appendChild(script);
+    });
+  }
+
+  async function runCustomChecksInIframe(iframe, context) {
+    // Inject custom check logic into iframe
+    const customCheckCode = `
+      (${runCustomChecks.toString()})
+    `;
+    
+    const getCssSelectorCode = `
+      (${getCssSelector.toString()})
+    `;
+    
+    iframe.contentWindow.eval(`
+      window.getCssSelector = ${getCssSelectorCode};
+      window.runCustomChecks = ${customCheckCode};
+    `);
+    
+    return iframe.contentWindow.runCustomChecks(context);
+  }
+
+  function updateProgress(current, total) {
+    const percent = Math.round((current / total) * 100);
+    const statusEl = document.getElementById('scan-status');
+    if (statusEl) {
+      statusEl.textContent = `Scanning page ${current} of ${total}... (${percent}%)`;
+    }
+  }
+
+  // ============= UI INITIALIZATION =============
   function initScanner(){
     if(!document.getElementById('a11y-global-styles')){
       const style = document.createElement('style');
@@ -142,126 +327,218 @@
         @keyframes slideIn{from{transform:translateX(100%);}to{transform:translateX(0);}}
         @keyframes slideOut{from{transform:translateX(0);}to{transform:translateX(100%);}}
         @media(max-width:768px){#a11y-overlay{width:100% !important;}}
-        /* Style for the resize handle */
-        #a11y-resizer {
-          position: absolute;
-          top: 0;
-          left: -8px; /* Slightly overlaps the border for easy grabbing */
-          bottom: 0;
-          width: 16px;
-          cursor: col-resize;
-          z-index: 1000000;
-        }
+        #a11y-resizer {position: absolute;top: 0;left: -8px;bottom: 0;width: 16px;cursor: col-resize;z-index: 1000000;}
       `;
       document.head.appendChild(style);
     }
-
+    
     // Create sidebar
     const sidebar = document.createElement('div');
     sidebar.id = 'a11y-overlay';
     sidebar.style.cssText = `position:fixed;top:0;right:0;bottom:0;width:450px;background:white;z-index:999999;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,0.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;animation:slideIn 0.3s ease-out;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);`;
+    
     sidebar.innerHTML = `
       <div id="a11y-resizer" title="Drag to resize sidebar"></div>
-      <div role="banner" id="a11y-header" style="background:#00274c;color:white;padding:20px;border-bottom:3px solid #ffcb05;transition:opacity 0.3s ease;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><h2 style="margin:0;font-size:20px;flex:1;color:#ffffff;">🔍 A11y Scanner</h2>
-      <button id="a11y-close-btn" style="
-        /* MODERN CLOSE BUTTON STYLES ONLY */
-        background: none;
-        border: 2px solid #ffcb05;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        line-height: 1;
-        color: #ffcb05;
-        font-weight: bold;
-        font-size: 18px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-      " title="Close scanner completely" aria-label="Close and remove accessibility scanner">✕</button>
-      </div><div id="scan-status" style="margin-top:10px;font-size:14px;opacity:0.9;color:#ffffff;">Finding LibGuides content...</div></div><main id="a11y-results" style="flex:1;overflow-y:auto;padding:20px;color:#333;text-align:center;">Initializing scanner...<br><br>⏳</main>`;
+      <div role="banner" id="a11y-header" style="background:#00274c;color:white;padding:20px;border-bottom:3px solid #ffcb05;transition:opacity 0.3s ease;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <h2 style="margin:0;font-size:20px;flex:1;color:#ffffff;">🔍 A11y Scanner</h2>
+          <button id="scan-mode-toggle" style="background:#FFCB05;border-radius:6px;padding:8px 12px;color:#00274C;font-weight:600;font-size:12px;cursor:pointer;transition:all 0.2s;" title="Switch scan mode">
+            Multi-Page
+          </button>
+          <button id="a11y-close-btn" style="background:none;border:2px solid #ffcb05;border-radius:50%;width:40px;height:40px;line-height:1;color:#ffcb05;font-weight:bold;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;" title="Close scanner" aria-label="Close">✕</button>
+        </div>
+        <div id="scan-status" style="margin-top:10px;font-size:14px;opacity:0.9;color:#ffffff;">Discovering pages...</div>
+      </div>
+      <main id="a11y-results" style="flex:1;overflow-y:auto;padding:20px;color:#333;text-align:center;">Initializing scanner...<br><br>⏳</main>
+    `;
+    
     document.body.appendChild(sidebar);
-
+    
     // Close button
-    document.getElementById('a11y-close-btn').onclick = () => {sidebar.style.animation = 'slideOut 0.3s ease-in'; sidebar.addEventListener('animationend', () => {sidebar.remove();});};
-
-    // --- Resizing Logic Start ---
+    document.getElementById('a11y-close-btn').onclick = () => {
+      sidebar.style.animation = 'slideOut 0.3s ease-in';
+      sidebar.addEventListener('animationend', () => sidebar.remove());
+    };
+    
+    // Resizing logic
     const resizer = document.getElementById('a11y-resizer');
-    const minWidth = 300; // Minimum width for the sidebar
-
     let isResizing = false;
-
+    const minWidth = 300;
+    
     resizer.addEventListener('mousedown', function(e) {
       isResizing = true;
-      // Disable CSS animation during drag for smoothness
       sidebar.style.transition = 'none';
-      document.body.style.userSelect = 'none'; // Prevent text selection while resizing
+      document.body.style.userSelect = 'none';
       document.body.style.cursor = 'col-resize';
     });
-
+    
     document.addEventListener('mousemove', function(e) {
       if (!isResizing) return;
-      
       const newWidth = window.innerWidth - e.clientX;
-      if (newWidth > minWidth) {
-        sidebar.style.width = newWidth + 'px';
-      }
+      if (newWidth > minWidth) sidebar.style.width = newWidth + 'px';
     });
-
+    
     document.addEventListener('mouseup', function() {
       if (isResizing) {
         isResizing = false;
-        // Restore CSS animation and user select state
         sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
       }
     });
-    // --- Resizing Logic End ---
-
-    const container = findLibGuidesContainer();
-    document.getElementById('scan-status').textContent = 'Running accessibility checks...';
-    const context = container === document ? document : container;
-
-    Promise.all([
-      axe.run(context, {runOnly:['wcag2a','wcag2aa','best-practice'], resultTypes:['violations']}),
-      Promise.resolve(runCustomChecks(context))
-    ])
-    .then(([axeResults, customResults]) => {
-      const allViolations = [...axeResults.violations, ...customResults];
-      displayResults({violations: allViolations});
-    })
-    .catch(err=>{
-      console.error('Scan error:', err);
-      document.getElementById('a11y-results').innerHTML = `<div style="color:#dc3545;background:#f8d7da;padding:20px;border-radius:8px;border:1px solid #f5c6cb;"><strong>Error:</strong> ${err.message}<br><br><small>Check browser console for details.</small></div>`;
-    });
+    
+    // Mode toggle
+    let isMultiPage = true;
+    const toggleBtn = document.getElementById('scan-mode-toggle');
+    
+    toggleBtn.onclick = function() {
+      isMultiPage = !isMultiPage;
+      this.textContent = isMultiPage ? 'Multi-Page' : 'Single-Page';
+      startScan(isMultiPage);
+    };
+    
+    // Start initial scan
+    startScan(isMultiPage);
   }
 
-  function displayResults(results){
+  async function startScan(multiPage) {
+    document.getElementById('scan-status').textContent = 'Discovering pages...';
+    document.getElementById('a11y-results').innerHTML = '<div style="text-align:center;padding:40px;">⏳ Scanning...</div>';
+    
+    try {
+      if (multiPage) {
+        const pages = discoverGuidePages();
+        document.getElementById('scan-status').textContent = `Found ${pages.length} page(s) to scan...`;
+        
+        const results = await scanMultiplePages(pages);
+        displayMultiPageResults(results);
+      } else {
+        // Single page mode (original behavior)
+        const container = findLibGuidesContainer();
+        document.getElementById('scan-status').textContent = 'Scanning current page...';
+        
+        const axeResults = await axe.run(container, {
+          runOnly: ['wcag2a', 'wcag2aa', 'best-practice'],
+          resultTypes: ['violations']
+        });
+        
+        const customResults = runCustomChecks(container);
+        displaySinglePageResults({ violations: [...axeResults.violations, ...customResults] });
+      }
+    } catch (err) {
+      console.error('Scan error:', err);
+      document.getElementById('a11y-results').innerHTML = `
+        <div style="color:#dc3545;background:#f8d7da;padding:20px;border-radius:8px;border:1px solid #f5c6cb;">
+          <strong>Error:</strong> ${err.message}<br><br>
+          <small>Check browser console for details.</small>
+        </div>
+      `;
+    }
+  }
+
+  // ============= DISPLAY FUNCTIONS =============
+  function displayMultiPageResults(results) {
+    const statusEl = document.getElementById('scan-status');
+    
+    // Calculate overall stats
+    let totalViolations = 0;
+    let totalScore = 0;
+    const pageScores = [];
+    
+    results.forEach(result => {
+      if (result.error) {
+        pageScores.push({ page: result.page, score: 0, violations: [], error: result.error });
+        return;
+      }
+      
+      const violations = result.violations;
+      totalViolations += violations.length;
+      
+      // Calculate score for this page using improved logic
+      const score = calculateAccessibilityScore(violations);
+      totalScore += score;
+      
+      pageScores.push({ page: result.page, score, violations, error: null });
+    });
+    
+    const avgScore = Math.round(totalScore / results.length);
+    let scoreColor, scoreMessage;
+    if(avgScore >= 95) {scoreColor = '#28a745'; scoreMessage = 'Excellent';}
+    else if(avgScore >= 80) {scoreColor = '#ffc107'; scoreMessage = 'Good';}
+    else if(avgScore >= 60) {scoreColor = '#fd7e14'; scoreMessage = 'Needs Work';}
+    else {scoreColor = '#dc3545'; scoreMessage = 'Poor';}
+    
+    statusEl.textContent = `Scanned ${results.length} page(s) - ${totalViolations} total issues`;
+    
+    // Build HTML
+    const circumference = 339.292;
+    const progress = (avgScore / 100) * circumference;
+    const offset = circumference - progress;
+    
+    let html = `
+      <div style="text-align:center;padding:25px 20px 20px;border-bottom:2px solid #e9ecef;margin-bottom:20px;background:#f8f9fa;">
+        <div style="font-size:14px;font-weight:700;color:#495057;margin-bottom:15px;text-transform:uppercase;letter-spacing:1.5px;">Overall Guide Score</div>
+        <svg width="90" height="90" viewBox="0 0 120 120" style="margin-bottom:0;">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/>
+          <circle cx="60" cy="60" r="54" fill="none" stroke="${scoreColor}" stroke-width="8" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" transform="rotate(-90 60 60)" stroke-linecap="round" style="transition:stroke-dashoffset 0.5s ease;"/>
+          <text x="60" y="65" text-anchor="middle" font-size="28" font-weight="bold" fill="${scoreColor}">${avgScore}</text>
+          <text x="60" y="82" text-anchor="middle" font-size="11" fill="#999">/ 100</text>
+        </svg>
+        <div style="font-size:16px;font-weight:600;color:${scoreColor};margin-bottom:2px;">${scoreMessage}</div>
+        <div style="font-size:12px;color:#999;">${results.length} pages • ${totalViolations} issues</div>
+      </div>
+    `;
+    
+    // Keep pages in original navigation order (don't sort by score)
+    // pageScores already in correct order from results array
+    
+    html += `<h3 style="color:#00274c;font-size:16px;margin:20px 0 12px;padding-bottom:8px;border-bottom:2px solid #e9ecef;">📄 Per-Page Results <span style="font-size:12px;font-weight:normal;color:#666;">(in navigation order)</span></h3>`;
+    
+    pageScores.forEach((item, idx) => {
+      const scoreColor = item.score >= 80 ? '#28a745' : item.score >= 60 ? '#ffc107' : '#dc3545';
+      const issueCount = item.violations.length;
+      
+      html += `
+        <details style="background:#f8f9fa;padding:15px;margin:12px 0;border-radius:6px;border-left:4px solid ${scoreColor};">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
+            <span>${item.page.title}</span>
+            <span style="display:flex;gap:10px;align-items:center;">
+              <span style="background:${scoreColor};color:white;padding:4px 10px;border-radius:12px;font-size:11px;">${item.score}/100</span>
+              <span style="color:#666;font-size:12px;">${issueCount} issue${issueCount !== 1 ? 's' : ''}</span>
+            </span>
+          </summary>
+          <div style="margin-top:15px;padding-top:15px;border-top:1px solid #dee2e6;">
+            ${item.error ? `<p style="color:#dc3545;">Error: ${item.error}</p>` : ''}
+            ${item.violations.length === 0 ? '<p style="color:#28a745;">✓ No issues found</p>' : ''}
+            ${item.violations.slice(0, 5).map(v => {
+              const exp = getExplanation(v.id);
+              return `<div style="background:white;padding:10px;margin:8px 0;border-radius:4px;font-size:13px;"><strong>${exp.title}</strong><br><span style="color:#666;">${v.nodes.length} instance(s)</span></div>`;
+            }).join('')}
+            ${item.violations.length > 5 ? `<p style="font-size:12px;color:#666;margin-top:10px;">...and ${item.violations.length - 5} more</p>` : ''}
+          </div>
+        </details>
+      `;
+    });
+    
+    document.getElementById('a11y-results').innerHTML = html;
+  }
+
+  function displaySinglePageResults(results) {
+    // Use improved scoring logic
     const violations = results.violations;
     const statusEl = document.getElementById('scan-status');
-    let score = 100, deductions = 0;
-    violations.forEach(v => {
-      const count = v.nodes.length;
-      if(v.impact === 'critical') deductions += 15 * count;
-      else if(v.impact === 'serious') deductions += 10 * count;
-      else if(v.impact === 'moderate') deductions += 5 * count;
-      else if(v.impact === 'minor') deductions += 3 * count;
-    });
-    score = Math.max(0, 100 - deductions);
+    const score = calculateAccessibilityScore(violations);
+    
     let scoreColor, scoreMessage;
     if(score >= 95) {scoreColor = '#28a745'; scoreMessage = 'Excellent';}
     else if(score >= 80) {scoreColor = '#ffc107'; scoreMessage = 'Good';}
     else if(score >= 60) {scoreColor = '#fd7e14'; scoreMessage = 'Needs Work';}
     else {scoreColor = '#dc3545'; scoreMessage = 'Poor';}
     if(statusEl) statusEl.textContent = violations.length === 0 ? 'Scan complete - No issues!' : `Found ${violations.length} issue(s)`;
-
     if(violations.length === 0) {
       document.getElementById('a11y-results').innerHTML = `<div style="text-align:center;padding:40px 20px;"><div style="font-size:14px;font-weight:600;color:#666;margin-bottom:15px;text-transform:uppercase;letter-spacing:1px;">Accessibility Score</div><svg width="120" height="120" viewBox="0 0 120 120" style="margin-bottom:20px;"><circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/><circle cx="60" cy="60" r="54" fill="none" stroke="#28a745" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" transform="rotate(-90 60 60)" stroke-linecap="round"/><text x="60" y="65" text-anchor="middle" font-size="32" font-weight="bold" fill="#28a745">100</text><text x="60" y="85" text-anchor="middle" font-size="12" fill="#666">/ 100</text></svg><div style="background:#d4edda;padding:30px;border-radius:10px;color:#155724;text-align:center;border:2px solid #c3e6cb;margin-top:10px;"><div style="font-size:48px;margin-bottom:15px;">✅</div><h3 style="margin:0 0 10px 0;font-size:20px;">Perfect Score!</h3><p style="margin:0;font-size:15px;">No accessibility issues detected in the LibGuides content.</p></div></div>`;
       return;
     }
-
     const canFix = [], systemIssues = [];
     violations.forEach(v=>{
       const exp = getExplanation(v.id);
@@ -270,7 +547,6 @@
     });
     const circumference = 339.292, progress = (score / 100) * circumference, offset = circumference - progress;
     let html = `<div style="text-align:center;padding:25px 20px 20px 20px;border-bottom:2px solid #e9ecef;margin-bottom:20px;background:#f8f9fa;"><div style="font-size:14px;font-weight:700;color:#495057;margin-bottom:15px;text-transform:uppercase;letter-spacing:1.5px;">Accessibility Score</div><svg width="90" height="90" viewBox="0 0 120 120" style="margin-bottom:0px;"><circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/><circle cx="60" cy="60" r="54" fill="none" stroke="${scoreColor}" stroke-width="8" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" transform="rotate(-90 60 60)" stroke-linecap="round" style="transition: stroke-dashoffset 0.5s ease;"/><text x="60" y="65" text-anchor="middle" font-size="28" font-weight="bold" fill="${scoreColor}">${score}</text><text x="60" y="82" text-anchor="middle" font-size="11" fill="#999">/ 100</text></svg><div style="font-size:16px;font-weight:600;color:${scoreColor};margin-bottom:2px;">${scoreMessage}</div></div>`;
-
     if(canFix.length > 0){
       html += `<div style="margin-bottom:25px;"><h3 style="color:#00274c;font-size:16px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e9ecef;">✏️ Issues You Can Fix</h3>`;
       canFix.forEach((item,index)=>{
@@ -290,10 +566,8 @@
       });
       html+='</div>';
     }
-
     document.getElementById('a11y-results').innerHTML = html;
-
-    // Attach highlight button handlers to highlight all elements per issue
+    // Attach highlight button handlers
     document.querySelectorAll('.highlight-btn').forEach(btn=>{
       btn.onclick = function(){
         const selectorsString = this.getAttribute('data-selectors');
@@ -318,6 +592,7 @@
     });
   }
 
+  // ============= INITIALIZATION =============
   if(typeof axe === 'undefined'){
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js';
@@ -327,5 +602,4 @@
   } else {
     initScanner();
   }
-
 })();
