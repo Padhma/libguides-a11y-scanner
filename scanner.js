@@ -153,113 +153,271 @@
     return document;
   }
 
-  function discoverGuidePages() {
-    const currentGuideId = window.location.href.match(/g=(\d+)/)?.[1];
-    if (!currentGuideId) {
-      return [{ title: document.title || 'Current Page', url: window.location.href }];
-    }
-    const guidePages = Array.from(document.querySelectorAll('a'))
-      .filter(link => {
-        if (!link.href.includes(`g=${currentGuideId}`) || !link.href.includes('&p=')) return false;
-        const text = link.textContent.trim().toLowerCase();
-        if (text.includes('skip to') || text.includes('next:') || text.includes('previous:') || link.href.includes('#')) return false;
-        return true;
-      })
-      .map(link => ({
-        title: link.textContent.trim() || 'Untitled Page',
-        url: link.href.split('#')[0]
-      }));
-    const uniquePages = Array.from(new Map(guidePages.map(p => [p.url, p])).values());
-    return uniquePages.length > 0 ? uniquePages : [{ title: document.title || 'Current Page', url: window.location.href }];
-  }
-
-  async function scanMultiplePages(pages) {
-    const results = [];
-    const totalPages = pages.length;
-    let scannedCount = 0;
-    const batchSize = 3;
-    for (let i = 0; i < pages.length; i += batchSize) {
-      const batch = pages.slice(i, i + batchSize);
-      const batchPromises = batch.map(page => scanPageInIframe(page, scannedCount, totalPages));
-      const batchResults = await Promise.allSettled(batchPromises);
-      batchResults.forEach((result, idx) => {
-        scannedCount++;
-        updateProgress(scannedCount, totalPages);
-        if (result.status === 'fulfilled') {
-          results.push(result.value);
-        } else {
-          results.push({
-            page: batch[idx],
-            violations: [],
-            error: result.reason.message || 'Failed to scan page'
-          });
+    function discoverGuidePages() {
+        // Try to find guide ID from URL - support multiple formats
+        let currentGuideId = window.location.href.match(/g=(\d+)/)?.[1] || 
+                            window.location.href.match(/guides\/(\d+)/)?.[1];
+        
+        // For friendly URLs like /guides/x-symposium/, extract the guide slug
+        let guideSlug = null;
+        const friendlyUrlMatch = window.location.href.match(/guides\.lib\.umich\.edu\/([^\/]+)/);
+        if (friendlyUrlMatch) {
+            guideSlug = friendlyUrlMatch[1];
+            console.log('Guide slug found:', guideSlug);
         }
-      });
-    }
-    return results;
-  }
-
-  function scanPageInIframe(page, current, total) {
-    return new Promise((resolve, reject) => {
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;visibility:hidden;';
-      iframe.src = page.url;
-      const timeout = setTimeout(() => {
-        iframe.remove();
-        reject(new Error('Timeout'));
-      }, 15000);
-      iframe.onload = async function() {
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-          const container = iframeDoc.querySelector('#s-lg-guide-main') || iframeDoc.querySelector('#s-lg-content') || iframeDoc.body;
-          if (typeof iframe.contentWindow.axe === 'undefined') {
-            await loadAxeInIframe(iframe);
-          }
-          const axeResults = await iframe.contentWindow.axe.run(container, {
-            runOnly: ['wcag2a', 'wcag2aa', 'best-practice'],
-            resultTypes: ['violations']
-          });
-          const customResults = await runCustomChecksInIframe(iframe, container);
-          clearTimeout(timeout);
-          iframe.remove();
-          resolve({
-            page: page,
-            violations: [...axeResults.violations, ...customResults]
-          });
-        } catch (err) {
-          clearTimeout(timeout);
-          iframe.remove();
-          reject(err);
+        
+        if (!currentGuideId && !guideSlug) {
+            console.log('No guide ID or slug found in URL');
+            return [{ title: document.title || 'Current Page', url: window.location.href }];
         }
-      };
-      iframe.onerror = function() {
-        clearTimeout(timeout);
-        iframe.remove();
-        reject(new Error('Failed to load page'));
-      };
-      document.body.appendChild(iframe);
-    });
-  }
 
-  function loadAxeInIframe(iframe) {
-    return new Promise((resolve, reject) => {
-      const script = iframe.contentDocument.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js';
-      script.onload = resolve;
-      script.onerror = reject;
-      iframe.contentDocument.head.appendChild(script);
-    });
-  }
+        console.log('Guide ID:', currentGuideId, 'Guide slug:', guideSlug);
 
-  async function runCustomChecksInIframe(iframe, context) {
-    const customCheckCode = `(${runCustomChecks.toString()})`;
-    const getCssSelectorCode = `(${getCssSelector.toString()})`;
-    iframe.contentWindow.eval(`
-      window.getCssSelector = ${getCssSelectorCode};
-      window.runCustomChecks = ${customCheckCode};
-    `);
-    return iframe.contentWindow.runCustomChecks(context);
-  }
+        // Look for navigation links in common LibGuides locations
+        const navSelectors = [
+            '#s-lg-tabs-container a',           // Tab navigation
+            '.s-lg-tabs a',                      // Alternative tab class
+            '#s-lg-guide-tabs a',                // Guide tabs
+            '.s-lg-guide-tabs a',                // Guide tabs alt
+            '#s-lg-guide-nav a',                 // Guide navigation
+            'nav a',                             // Generic nav
+            '[role="navigation"] a',             // ARIA navigation
+            '.navbar a'                          // Navbar links
+        ];
+
+        const guidePages = [];
+        const seenUrls = new Set();
+
+        navSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(link => {
+            const href = link.href;
+            const text = link.textContent.trim();
+            
+            // Skip if already seen
+            if (seenUrls.has(href)) return;
+            
+            // Check if link belongs to this guide (by ID or slug)
+            let belongsToGuide = false;
+            
+            if (currentGuideId) {
+                const linkGuideId = href.match(/g=(\d+)/)?.[1] || href.match(/guides\/(\d+)/)?.[1];
+                belongsToGuide = linkGuideId === currentGuideId;
+            }
+            
+            if (guideSlug && !belongsToGuide) {
+                // Check if URL contains the guide slug
+                belongsToGuide = href.includes(`guides.lib.umich.edu/${guideSlug}/`) || 
+                                href.includes(`/${guideSlug}/`);
+            }
+            
+            if (!belongsToGuide) return;
+            
+            // Skip navigation helpers and anchors
+            const skipKeywords = ['skip to', 'next:', 'previous:', 'jump to'];
+            if (skipKeywords.some(kw => text.toLowerCase().includes(kw))) return;
+            
+            // Skip anchor-only links
+            if (href.includes('#') && href.split('#')[0] === window.location.href.split('#')[0]) return;
+            
+            // Clean URL (remove hash)
+            const cleanUrl = href.split('#')[0];
+            
+            if (!seenUrls.has(cleanUrl) && text.length > 0) {
+                guidePages.push({
+                title: text || 'Untitled Page',
+                url: cleanUrl
+                });
+                seenUrls.add(cleanUrl);
+            }
+            });
+        });
+
+        // If no pages found in navigation, search all links
+        if (guidePages.length === 0) {
+            console.log('No nav pages found, searching all links...');
+            Array.from(document.querySelectorAll('a')).forEach(link => {
+            const href = link.href;
+            
+            let belongsToGuide = false;
+            
+            if (currentGuideId) {
+                const hasGuideId = href.includes(`g=${currentGuideId}`) || href.includes(`guides/${currentGuideId}`);
+                const hasPageId = href.includes('&p=') || href.includes('/p/');
+                belongsToGuide = hasGuideId && hasPageId;
+            }
+            
+            if (guideSlug && !belongsToGuide) {
+                belongsToGuide = (href.includes(`guides.lib.umich.edu/${guideSlug}/`) || 
+                                href.includes(`/${guideSlug}/`)) &&
+                                href !== window.location.href.split('#')[0];
+            }
+            
+            if (belongsToGuide) {
+                const cleanUrl = href.split('#')[0];
+                if (!seenUrls.has(cleanUrl)) {
+                guidePages.push({
+                    title: link.textContent.trim() || 'Untitled Page',
+                    url: cleanUrl
+                });
+                seenUrls.add(cleanUrl);
+                }
+            }
+            });
+        }
+
+        // Always include current page
+        const currentUrl = window.location.href.split('#')[0];
+        if (!seenUrls.has(currentUrl)) {
+            guidePages.unshift({
+            title: document.title || 'Current Page',
+            url: currentUrl
+            });
+        }
+
+        console.log(`Found ${guidePages.length} pages:`, guidePages);
+        return guidePages.length > 0 ? guidePages : [{ title: document.title || 'Current Page', url: window.location.href }];
+        }
+
+    async function scanMultiplePages(pages) {
+        const results = [];
+        const totalPages = pages.length;
+        let scannedCount = 0;
+        const batchSize = 1; // Changed from 3 to 1 to avoid axe conflicts
+        
+        for (let i = 0; i < pages.length; i += batchSize) {
+            const batch = pages.slice(i, i + batchSize);
+            const batchPromises = batch.map(page => scanPageWithFetch(page, scannedCount, totalPages));
+            const batchResults = await Promise.allSettled(batchPromises);
+            
+            batchResults.forEach((result, idx) => {
+            scannedCount++;
+            updateProgress(scannedCount, totalPages);
+            if (result.status === 'fulfilled') {
+                results.push(result.value);
+            } else {
+                results.push({
+                page: batch[idx],
+                violations: [],
+                error: result.reason.message || 'Failed to scan page'
+                });
+            }
+            });
+        }
+        return results;
+        }
+        
+    function scanPageWithFetch(page, current, total) {
+        return new Promise(async (resolve, reject) => {
+            const timeout = setTimeout(() => {
+            reject(new Error('Timeout'));
+            }, 15000);
+            
+            try {
+            const response = await fetch(page.url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const container = doc.querySelector('#s-lg-guide-main') || doc.querySelector('#s-lg-content') || doc.body;
+            
+            // Create a unique axe instance for this document to avoid conflicts
+            let axeResults;
+            try {
+                // Run axe with a small delay to prevent conflicts
+                await new Promise(r => setTimeout(r, Math.random() * 100));
+                axeResults = await axe.run(container, {
+                runOnly: ['wcag2a', 'wcag2aa', 'best-practice'],
+                resultTypes: ['violations']
+                });
+            } catch (axeError) {
+                console.warn('Axe error on', page.url, axeError.message);
+                // If axe fails, just use custom checks
+                axeResults = { violations: [] };
+            }
+            
+            // Run custom checks
+            const customResults = runCustomChecksOnDoc(doc, container);
+            
+            clearTimeout(timeout);
+            resolve({
+                page: page,
+                violations: [...axeResults.violations, ...customResults]
+            });
+            } catch (err) {
+            clearTimeout(timeout);
+            reject(err);
+            }
+        });
+        }
+
+        function runCustomChecksOnDoc(doc, context) {
+        const violations = [];
+        const container = context || doc.body;
+        
+        const decorativeImages = container.querySelectorAll('img[alt=""]');
+        if(decorativeImages.length>0){
+            const nodes=Array.from(decorativeImages).filter(img=>!img.hasAttribute('role')||img.getAttribute('role')!=='presentation');
+            if(nodes.length>0) violations.push({id:'decorative-image-role', impact:'minor', help:'Decorative Images Should Have role="presentation"', description:'Images with empty alt text should explicitly be marked as decorative with role="presentation"', nodes:nodes.map(el=>({target:[getCssSelectorForElement(el, doc)], html:el.outerHTML.substring(0,100)}))});
+        }
+        
+        const links = container.querySelectorAll('a');
+        const urlOnlyLinks = Array.from(links).filter(link=>{
+            const text = link.textContent.trim();
+            return text.startsWith('http://') || text.startsWith('https://');
+        });
+        if(urlOnlyLinks.length>0) violations.push({id:'link-url-only-text', impact:'serious', help:'Links Should Not Use URLs as Link Text', description:'Links with URLs as text are not descriptive.', nodes:urlOnlyLinks.map(el=>({target:[getCssSelectorForElement(el, doc)], html:el.outerHTML.substring(0,150)}))});
+        
+        const imagesNoAlt = container.querySelectorAll('img:not([alt])');
+        if(imagesNoAlt.length>0) violations.push({id:'image-no-alt', impact:'critical', help:'Images Must Have Alt Attributes', description:'All images must have an alt attribute, even if empty for decorative images.', nodes:Array.from(imagesNoAlt).map(el=>({target:[getCssSelectorForElement(el, doc)], html:el.outerHTML.substring(0,100)}))});
+        
+        const imagesWithAlt = container.querySelectorAll('img[alt]');
+        const badAltImages = Array.from(imagesWithAlt).filter(img=>{
+            const alt = img.alt.toLowerCase();
+            if(!alt) return false;
+            return (
+            alt.startsWith('image of') ||
+            alt.startsWith('picture of') ||
+            alt.startsWith('photo of') ||
+            alt.startsWith('graphic of') ||
+            alt.startsWith('screenshot of') ||
+            alt.match(/\.(jpg|jpeg|png|gif|svg|webp|bmp)$/i) ||
+            alt.length > 250 ||
+            (alt === alt.toUpperCase() && alt.length > 10)
+            );
+        });
+        if(badAltImages.length>0) violations.push({id:'image-alt-quality', impact:'moderate', help:'Alt Text Quality Issues', description:'Alt text should be concise (<250 chars), avoid phrases like "image of", and not be filenames or all caps.', nodes:badAltImages.map(el=>({target:[getCssSelectorForElement(el, doc)], html:el.outerHTML.substring(0,100), altText:el.alt}))});
+        
+        return violations;
+        }
+
+        function getCssSelectorForElement(el, doc) {
+        if(el.id) return `#${el.id}`;
+        const path = [];
+        let current = el;
+        while(current && current.nodeType === Node.ELEMENT_NODE && current !== doc.body){
+            let selector = current.tagName.toLowerCase();
+            if(current.id){
+            selector = `#${current.id}`;
+            path.unshift(selector);
+            break;
+            }
+            if(current.className && typeof current.className === 'string'){
+            const classes = current.className.trim().split(/\s+/).slice(0,2).join('.');
+            if(classes) selector += `.${classes}`;
+            }
+            if(current.parentElement){
+            const siblings = Array.from(current.parentElement.children);
+            const index = siblings.indexOf(current);
+            if(siblings.length > 1) selector += `:nth-child(${index+1})`;
+            }
+            path.unshift(selector);
+            current = current.parentElement;
+            if(path.length > 5) break;
+        }
+        return path.join(' > ');
+        }
 
   function updateProgress(current, total) {
     const percent = Math.round((current / total) * 100);
@@ -340,6 +498,7 @@
     try {
       if (multiPage) {
         const pages = discoverGuidePages();
+        console.log('Pages found:', pages);  // <-- Add this
         const results = await scanMultiplePages(pages);
         displayMultiPageResults(results);
       } else {
@@ -747,3 +906,5 @@
   }
 
 })();
+
+
