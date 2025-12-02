@@ -305,7 +305,7 @@
         }
         return results;
         }
-        
+
     function scanPageWithFetch(page, current, total) {
         return new Promise(async (resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -628,143 +628,145 @@
 }
 
   function displaySinglePageResults(results) {
-  // Load Lexend font if not present
-  if (!document.getElementById("lexend-font")) {
-    const link = document.createElement("link");
-    link.id = "lexend-font";
-    link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Lexend:wght@400;600&display=swap";
-    document.head.appendChild(link);
-  }
+    // Load Lexend font if not present
+    if (!document.getElementById("lexend-font")) {
+        const link = document.createElement("link");
+        link.id = "lexend-font";
+        link.rel = "stylesheet";
+        link.href =
+        "https://fonts.googleapis.com/css2?family=Lexend:wght@400;600&display=swap";
+        document.head.appendChild(link);
+    }
 
-  const violations = results.violations;
-  const score = calculateAccessibilityScore(violations);
+    const violations = results.violations;
+    const score = calculateAccessibilityScore(violations);
 
-  // Softer, less saturated versions of the original colors
-  const scoreColors = {
-    excellent: "#2c9a4b",
-    good: "#1493a0",
-    needsWork: "#d66a12",
-    poor: "#c23c3c",
-  };
+    // Softer, less saturated versions of the original colors
+    const scoreColors = {
+        excellent: "#2c9a4b",
+        good: "#1493a0",
+        needsWork: "#d66a12",
+        poor: "#c23c3c",
+    };
 
-  let scoreColor, scoreMessage;
-  if (score >= 95) {
-    scoreColor = scoreColors.excellent;
-    scoreMessage = "Excellent";
-  } else if (score >= 80) {
-    scoreColor = scoreColors.good;
-    scoreMessage = "Good";
-  } else if (score >= 60) {
-    scoreColor = scoreColors.needsWork;
-    scoreMessage = "Needs Work";
-  } else {
-    scoreColor = scoreColors.poor;
-    scoreMessage = "Poor";
-  }
+    let scoreColor, scoreMessage;
+    if (score >= 95) {
+        scoreColor = scoreColors.excellent;
+        scoreMessage = "Excellent";
+    } else if (score >= 80) {
+        scoreColor = scoreColors.good;
+        scoreMessage = "Good";
+    } else if (score >= 60) {
+        scoreColor = scoreColors.needsWork;
+        scoreMessage = "Needs Work";
+    } else {
+        scoreColor = scoreColors.poor;
+        scoreMessage = "Poor";
+    }
 
-  // --- No issues ---
-  if (violations.length === 0) {
+    // --- No issues ---
+    if (violations.length === 0) {
     document.getElementById("a11y-results").innerHTML = `
-      <div style="text-align:center;padding:40px 20px;font-family:'Lexend',sans-serif;">
-        <div style="font-size:14px;font-weight:600;color:#666;margin-bottom:15px;text-transform:uppercase;letter-spacing:1px;">
-          Accessibility Score
+            <div style="max-width:400px;margin:32px auto 0;">
+            <div style="text-align:center;padding:18px 16px 12px 16px;border-radius:8px;background:#f8fafb;border:1px solid #e5e7eb;box-shadow:0 1px 6px rgba(44,154,75,0.05);margin-bottom:14px;">
+                <div style="font-size:13px;font-weight:600;color:#4a4a4a;margin-bottom:8px;">
+                Accessibility Score
+                </div>
+                <svg width="80" height="80" viewBox="0 0 120 120" style="margin-bottom:6px;">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/>
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#2c9a4b" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+                <text x="60" y="65" text-anchor="middle" font-size="26" font-weight="600" fill="#2c9a4b">100</text>
+                <text x="60" y="82" text-anchor="middle" font-size="10" fill="#999">/100</text>
+                </svg>
+                <div style="font-size:15px;font-weight:600;color:#2c9a4b;margin-bottom:4px;">
+                Excellent ⭐⭐⭐⭐⭐
+                </div>
+                <div style="font-size:12px;color:#00274C;background:#eafcef;padding:6px 10px;border-radius:5px;display:inline-block;">
+                No issues found
+                </div>
+            </div>
+            <div style="background:#e6f4ea;border-radius:7px;border:1.2px solid #f1f9f3;padding:20px 15px;text-align:center;">
+                <div style="font-family:'Lexend';font-size:14px;color:#226644;">This page successfully passed all accessibility checks.</div>
+                <div style="font-family:'Lexend';font-size:12px;color:#226644;font-style:italic;">Keep up the great work!</div>
+            </div>
+            </div>
+        `;
+        return;
+        }
+
+    // ---- violations split ----
+    const canFix = [];
+    const systemIssues = [];
+
+    violations.forEach((v) => {
+        const exp = getExplanation(v.id);
+        if (exp.canFix === false)
+        systemIssues.push({ violation: v, explanation: exp });
+        else canFix.push({ violation: v, explanation: exp });
+    });
+
+    const circumference = 339.292;
+    const offset = circumference - (score / 100) * circumference;
+
+    let html = `
+        <div style="text-align:center;padding:25px 20px 20px 20px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;background:#fafafa;font-family:'Lexend',sans-serif;">
+        <div style="font-size:14px;font-weight:600;color:#4a4a4a;margin-bottom:15px;text-transform:uppercase;letter-spacing:1px;">
+            Accessibility Score
         </div>
 
-        <svg width="120" height="120" viewBox="0 0 120 120" style="margin-bottom:20px;">
-          <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/>
-          <circle cx="60" cy="60" r="54" fill="none" stroke="#2c9a4b" stroke-width="8"
-            stroke-dasharray="339.292" stroke-dashoffset="0"
-            transform="rotate(-90 60 60)" stroke-linecap="round"/>
+        <svg width="90" height="90" viewBox="0 0 120 120"">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/>
+            <circle cx="60" cy="60" r="54" fill="none"
+            stroke="${scoreColor}" stroke-width="8"
+            stroke-dasharray="${circumference}"
+            stroke-dashoffset="${offset}"
+            transform="rotate(-90 60 60)"
+            stroke-linecap="round"
+            />
 
-          <text x="60" y="65" text-anchor="middle"
-            font-size="32" font-weight="600" fill="#2c9a4b">100</text>
-          <text x="60" y="85" text-anchor="middle" font-size="12" fill="#666">/ 100</text>
+            <text x="60" y="65" text-anchor="middle"
+            font-size="28" font-weight="600" fill="${scoreColor}">
+            ${score}
+            </text>
+            <text x="60" y="82" text-anchor="middle" font-size="11" fill="#999">/ 100</text>
         </svg>
 
-        <div style="font-size:13px;color:#00274C;background:#f1f3f5;padding:8px 12px;border-radius:6px;margin-bottom:15px;display:inline-block;">
-          Current page • No issues found
+        <div style="font-size:15px;font-weight:600;color:${scoreColor};margin-bottom:8px;">
+            ${scoreMessage} ${score >= 95 ? '⭐⭐⭐⭐⭐' : score >= 80 ? '⭐⭐⭐⭐' : score >= 60 ? '⭐⭐⭐' : '⭐⭐'}
         </div>
 
-        <div style="background:#e6f4ea;padding:30px;border-radius:10px;color:#155724;text-align:center;border:1.5px solid #ccebd5;">
-          <div style="font-size:48px;margin-bottom:15px;">✅</div>
-          <h3 style="margin:0 0 10px 0;font-size:20px;font-weight:600;">Perfect Score!</h3>
-          <p style="margin:0;font-size:15px;">No accessibility issues detected in the LibGuides content.</p>
+        <div style="font-size:13px;color:#00274C;background:#f1f3f5;padding:8px 12px;border-radius:6px;display:inline-block;">
+            Current page • Found ${violations.length} issue${violations.length !== 1 ? "s" : ""}
         </div>
-      </div>
+        </div>
     `;
-    return;
-  }
 
-  // ---- violations split ----
-  const canFix = [];
-  const systemIssues = [];
+    // Accent colors toned down
+    const priorityColors = {
+        critical: "#c23c3c",
+        important: "#d66a12",
+        minor: "#1493a0",
+    };
 
-  violations.forEach((v) => {
-    const exp = getExplanation(v.id);
-    if (exp.canFix === false)
-      systemIssues.push({ violation: v, explanation: exp });
-    else canFix.push({ violation: v, explanation: exp });
-  });
-
-  const circumference = 339.292;
-  const offset = circumference - (score / 100) * circumference;
-
-  let html = `
-    <div style="text-align:center;padding:25px 20px 20px 20px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;background:#fafafa;font-family:'Lexend',sans-serif;">
-      <div style="font-size:14px;font-weight:600;color:#4a4a4a;margin-bottom:15px;text-transform:uppercase;letter-spacing:1px;">
-        Accessibility Score
-      </div>
-
-      <svg width="90" height="90" viewBox="0 0 120 120"">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/>
-        <circle cx="60" cy="60" r="54" fill="none"
-          stroke="${scoreColor}" stroke-width="8"
-          stroke-dasharray="${circumference}"
-          stroke-dashoffset="${offset}"
-          transform="rotate(-90 60 60)"
-          stroke-linecap="round"
-        />
-
-        <text x="60" y="65" text-anchor="middle"
-          font-size="28" font-weight="600" fill="${scoreColor}">
-          ${score}
-        </text>
-        <text x="60" y="82" text-anchor="middle" font-size="11" fill="#999">/ 100</text>
-      </svg>
-
-      <div style="font-size:15px;font-weight:600;color:${scoreColor};margin-bottom:8px;">
-        ${scoreMessage} ${score >= 95 ? '⭐⭐⭐⭐⭐' : score >= 80 ? '⭐⭐⭐⭐' : score >= 60 ? '⭐⭐⭐' : '⭐⭐'}
-      </div>
-
-      <div style="font-size:13px;color:#00274C;background:#f1f3f5;padding:8px 12px;border-radius:6px;display:inline-block;">
-        Current page • Found ${violations.length} issue${violations.length !== 1 ? "s" : ""}
-      </div>
-    </div>
-  `;
-
-  // Accent colors toned down
-  const priorityColors = {
-    critical: "#c23c3c",
-    important: "#d66a12",
-    minor: "#1493a0",
-  };
-
-  // Muted background colors matching each priority
-  const priorityBackgrounds = {
-    critical: "rgba(194, 60, 60, 0.04)",
-    important: "rgba(214, 106, 18, 0.04)",
-    minor: "rgba(20, 147, 160, 0.04)",
-  };
+    // Muted background colors matching each priority
+    const priorityBackgrounds = {
+        critical: "rgba(194, 60, 60, 0.04)",
+        important: "rgba(214, 106, 18, 0.04)",
+        minor: "rgba(20, 147, 160, 0.04)",
+    };
 
   // ========= YOU CAN FIX =========
   if (canFix.length > 0) {
     html += `
-      <div style="margin-bottom:25px;font-family:'Lexend',sans-serif;">
-        <h3 style="color:#00274c;font-size:16px;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;font-weight:600;font-family:'Lexend',sans-serif;">
-          ✏️ Issues You Can Fix
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 12px 0;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">
+        <h3 style="color:#00274c;font-size:16px;font-weight:600;margin:0;font-family:'Lexend',sans-serif;">
+            ✏️ Issues You Can Fix
         </h3>
+        <button id="accordion-toggle-btn" type="button"
+            style="background:#ffcb05;color:#00274c;font-weight:600;border:none;border-radius:5px;padding:6px 15px;cursor:pointer;font-size:14px;">
+            Expand All
+        </button>
+        </div>
     `;
 
     canFix.forEach((item, index) => {
@@ -795,7 +797,7 @@
             </div>
 
             <div style="background:white;padding:12px;border:1px solid #d8e7f7;border-radius:6px;margin-bottom:14px;">
-              <h5 style="margin:0 0 6px 0;font-weight:700;color:##1a2e3f;font-size:14px;">
+              <h5 style="margin:0 0 6px 0;font-weight:700;color:#1a2e3f;font-size:14px;">
                 🔧 How to fix
               </h5>
               <p style="margin:0;">${exp.howToFix}</p>
@@ -830,7 +832,28 @@
     });
 
     html += `</div>`;
-  }
+
+    document.getElementById("a11y-results").innerHTML = html;
+
+    // Then attach the event listener
+    // Attach after rendering
+    // Safe way: give the browser a tick to render
+    setTimeout(() => {
+    const accordionBtn = document.getElementById('accordion-toggle-btn');
+    if (accordionBtn) {
+        let expanded = false;
+        accordionBtn.addEventListener('click', () => {
+        expanded = !expanded;
+        document.querySelectorAll("#a11y-results > details").forEach(d => d.open = expanded);
+        accordionBtn.textContent = expanded ? "Collapse All" : "Expand All";
+        console.log("Button clicked!"); // now you should see this
+        });
+    } else {
+        console.error("Accordion button not found!");
+    }
+    }, 0);
+    
+}
 
   // ========== SYSTEM ISSUES ==========
   if (systemIssues.length > 0) {
@@ -906,5 +929,3 @@
   }
 
 })();
-
-
