@@ -7,11 +7,6 @@
   }
 
   const ISSUE_EXPLANATIONS = {
-    'image-alt': { 
-        title:'Images Missing Descriptions', 
-        plain:'Images need alternative text so screen readers can describe them to blind users.', 
-        howToFix:'In LibGuides editor: Click the image → Properties → Add description in "Alternative Text" field. Describe what the image shows.', 
-        priority:'critical', canFix:true},
     'image-no-alt': { 
         title:'Images Missing Alt Attribute', 
         plain:'These images have no alt attribute at all. Every image must have alt="" (if decorative) or descriptive alt text.', 
@@ -64,8 +59,8 @@
         priority: 'important', canFix: true},
     'label': {
         title:'Form Fields Missing Labels', 
-        plain:'Search boxes and input fields need visible labels so users know what to enter.', 
-        howToFix:'Add a text label above the field, or contact library-web-support@umich.edu if it\'s a widget.', 
+        plain:'Search boxes and input fields need visible labels so users know what to enter. Screen readers cannot tell what an unlabeled field is for.', 
+        howToFix:'In LibGuides editor: If you embedded a form using HTML: Add a &lt;label&gt; tag in the code. Example: change &lt;input type="text" name="search"&gt; to &lt;label&gt;Search: &lt;input type="text" name="search"&gt;&lt;/label&gt;. OR add descriptive text above the form. If you created a form using a widget: add visible text above the input field describing what to enter.', 
         priority:'critical', canFix:true},
     'button-name': {
         title:'Buttons Without Labels', 
@@ -73,10 +68,25 @@
         howToFix:'Add text inside the button, or remove empty buttons.', 
         priority:'critical', canFix:true},    
     'color-contrast': {
-        title:'Text Hard to Read (Low Contrast)', 
-        plain:'Text color doesn\'t stand out enough from background.', 
-        howToFix:'Use darker text colors or default styling.', 
+        title:'Text Fails Contrast Requirements', 
+        plain:'Text color doesn\'t have enough contrast with its background color. This makes it difficult or impossible for people with low vision or color blindness to read.',
+        howToFix:'In LibGuides editor: Change the text to a darker color or use the default text color (remove custom colors). The text and background must have a contrast ratio of at least 4.5:1 for normal text, or 3:1 for large text (18pt+ or 14pt+ bold). Use a contrast checker tool if needed, or simply use default colors which meet requirements.', 
         priority:'important', canFix:true},
+    'duplicate-id': {
+        title: 'Duplicate ID Attributes',
+        plain: 'Multiple elements have the same ID. This often happens when copying content from Google Docs or Word, which adds hidden IDs that get duplicated when you paste multiple times.',
+        howToFix: 'In LibGuides editor: (1) Select all the content in this box, (2) Copy the content and paste it into a plain text editor (such as Notepad, TextEdit)to strip any hidden formatting and duplicate ID codes, (3) Then, copy the cleaned text from the plain text editor and paste it back into LibGuides, (4) Reapply any formatting you need (bold, italics, headings, links) using the LibGuides editor tools.',
+        priority: 'important', canFix: true},
+    'scope-attr-valid': {
+        title:'Incorrect Use of Scope Attribute in Tables', 
+        plain:'Table cells have a "scope" attribute, but this attribute should only be used on table header cells (<th>), not regular data cells (<td>).', 
+        howToFix:'In LibGuides editor: Edit the table → Select the header row → Use the table toolbar to convert header cells from <td> to <th>. Or rebuild the table using the table tool with proper headers. If editing HTML directly: change change &lt;td scope="col"&gt; to &lt;th scope="col"&gt; for header cells.', 
+        priority:'important', canFix: true},
+    'list': {
+        title:'Improperly Structured List', 
+        plain:'This list has structural problems - likely extra tags, nested elements, or formatting copied from Microsoft Word or Google Docs that breaks the list structure for screen readers.', 
+        howToFix:'In LibGuides editor: (1) Delete the problematic list, (2) Recreate it using the list button in the toolbar (bullet or numbered list icon), (3) Type or paste content as plain text, then format. DO NOT copy formatted lists directly from Word/Docs. If you must paste from Word: paste into Notepad first to strip formatting, then paste into LibGuides.', 
+        priority:'important', canFix: true},
     'landmark-one-main': {
         title:'Multiple Main Content Areas', 
         plain:'Page has multiple "main" regions. This is usually a LibGuides template issue.', 
@@ -139,13 +149,15 @@
     return successCount > 0;
   }
 
-  function getCssSelector(el){
-    if(el.id) return `#${el.id}`;
+  function getCssSelector(el, skipId = false){
+    // If skipId is true, don't use the ID even if it exists (for duplicate IDs)
+    if(el.id && !skipId) return `#${el.id}`;
+
     const path = [];
     let current = el;
     while(current && current.nodeType === Node.ELEMENT_NODE && current !== document.body){
       let selector = current.tagName.toLowerCase();
-      if(current.id){selector = `#${current.id}`; path.unshift(selector); break;}
+      if(current.id && !skipId){selector = `#${current.id}`; path.unshift(selector); break;}
       if(current.className && typeof current.className === 'string'){
         const classes = current.className.trim().split(/\s+/).slice(0,2).join('.');
         if(classes) selector += `.${classes}`;
@@ -223,6 +235,27 @@
     });
     if(headingLinks.length) violations.push({id: 'heading-with-link', impact: 'serious', help: 'Headings Used Entirely as Links', description: 'Headings where all text is a link can confuse screen readers about the purpose of the element.', nodes: headingLinks.map(el => ({target:[getCssSelector(el)], html:el.outerHTML.substring(0,150)}))});
 
+    // Duplicate IDs - custom check to find ALL duplicates
+    const allIds = {};
+    Array.from(container.querySelectorAll('[id]')).forEach(el => {
+      const id = el.id;
+      if (!allIds[id]) allIds[id] = [];
+      allIds[id].push(el);
+    });
+    
+    const duplicateIdElements = [];
+    Object.entries(allIds).forEach(([id, elements]) => {
+      if (elements.length > 1) {
+        elements.forEach(el => duplicateIdElements.push(el));
+      }
+    });
+    
+    if(duplicateIdElements.length) violations.push({id:'duplicate-id', impact:'serious', help:'Duplicate ID Attributes Found', description:'Multiple elements have the same ID. IDs must be unique on a page.', nodes:duplicateIdElements.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
+
+    // Invalid scope attributes (scope on <td> instead of <th>)
+    const invalidScope = Array.from(container.querySelectorAll('td[scope], td[headers]'));
+    if(invalidScope.length) violations.push({id:'scope-attr-valid', impact:'serious', help:'Invalid Scope Attribute on Table Cells', description:'The scope attribute should only be used on <th> elements, not <td> elements.', nodes:invalidScope.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
+
     // Empty headings
     violations.push(...checkEmptyHeadings(container));
     
@@ -236,7 +269,6 @@
   }
 
   function discoverGuidePages() {
-
     let currentGuideId = window.location.href.match(/g=(\d+)/)?.[1] || window.location.href.match(/guides\/(\d+)/)?.[1];
     let guideSlug = window.location.href.match(/guides\.lib\.umich\.edu\/([^\/]+)/)?.[1];
     
@@ -327,7 +359,7 @@
         try {
           await new Promise(r => setTimeout(r, Math.random() * 100));
           axeResults = await axe.run(container, {runOnly: ['wcag2a', 'wcag2aa', 'best-practice'], resultTypes: ['violations']});
-          axeResults.violations = axeResults.violations.filter(v => v.id !== 'empty-heading');
+          axeResults.violations = axeResults.violations.filter(v => v.id !== 'empty-heading' && v.id !== 'image-alt');
         } catch (axeError) {console.warn('Axe error on', pages[i].url);}
         
         results.push({page: pages[i], violations: [...axeResults.violations, ...runCustomChecks(container)]});
@@ -404,7 +436,13 @@
       } else {
         const container = findLibGuidesContainer();
         const axeResults = await axe.run(container, {runOnly: ['wcag2a', 'wcag2aa', 'best-practice'], resultTypes: ['violations']});
-        const filteredAxeViolations = axeResults.violations.filter(v => v.id !== 'empty-heading');
+        const filteredAxeViolations = axeResults.violations.filter(v => 
+            v.id !== 'empty-heading' 
+            && v.id !== 'duplicate-id' 
+            && v.id !== 'scope-attr-valid'
+            && v.id !== 'image-alt'
+        );
+
         displaySinglePageResults({ violations: [...filteredAxeViolations, ...runCustomChecks(container)] });
       }
     } catch (err) {
