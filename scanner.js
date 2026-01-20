@@ -581,7 +581,7 @@
       <div role="banner" id="a11y-header" style="background:#00274c;color:white;padding:20px;border-bottom:3px solid #ffcb05;transition:opacity 0.3s ease;font-family:'Lexend',sans-serif;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
           <div style="display:flex;align-items:center;gap:8px;flex:1;">
-            <h2 style="margin:0;font-size:18px;color:#ffffff;font-family:'Lexend',sans-serif;">🔍 LibGuides A11y Insights</h2>
+            <h2 style="margin:0;font-size:16px;color:#ffffff;font-family:'Lexend',sans-serif;">🔍 LibGuides A11y Insights</h2>
             <a href="https://padhma.github.io/libguides-a11y-insights/" target="_blank" rel="noopener" title="View documentation and learn more about this tool" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:2px solid #ffcb05;color:#ffcb05;text-decoration:none;font-size:12px;font-weight:bold;font-family:serif;transition:all 0.2s;" onmouseover="this.style.background='#ffcb05';this.style.color='#00274c';" onmouseout="this.style.background='transparent';this.style.color='#ffcb05';">i</a>
           </div>
           <button id="scan-mode-toggle" style="background:#ffcb05;border-radius:6px;padding:8px 12px;color:#00274C;font-weight:600;font-size:12px;cursor:pointer;transition:all 0.2s;font-family:'Lexend',sans-serif;" title="Scan all pages in this guide">Show All Pages</button>
