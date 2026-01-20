@@ -11,111 +11,178 @@
         title:'Images Missing Alt Attribute', 
         plain:'These images have no alt attribute at all. Every image must have alt="" (if decorative) or descriptive alt text.', 
         howToFix:'In LibGuides editor: Click image → Properties → Add alt text describing the image, or use alt="" if purely decorative.', 
-        priority:'critical', canFix:true},
+        priority:'violation', canFix:true},
     'image-alt-quality': {
         title:'Alt Text Quality Issues', 
         plain:'Alt text contains problematic patterns: starts with phrases like "image of", is a filename, too long, or all caps.', 
-        howToFix:'Revise alt text. Remove leading phrases like "image of". Keep under 250 characters.', 
-        priority:'moderate', canFix:true},
+        howToFix:'Revise alt text. Remove leading phrases like "image of". Keep under 250 characters. You can use the <a href="https://chatgpt.com/g/g-t8ueMpwjg-wolverine-describer" target="_blank" rel="noopener" aria-label="Wolverine Describer (opens in new tab)">Wolverine Describer</a> to generate accessible alt text.',
+        priority:'best-practice', canFix:true},
     'link-url-only-text': {
         title:'Links Use URLs as Text', 
         plain:'These links display the full URL (like "http://proxy.lib...") instead of descriptive text. Screen reader users hear the entire URL read aloud.', 
         howToFix:'In LibGuides editor: Highlight the link → Change the visible text to something descriptive like "View in ProQuest Database" while keeping the URL in the link target.', 
-        priority:'important', canFix:true},
+        priority:'warning', canFix:true},
     'link-name': {
         title:'Links Without Descriptive Text', 
         plain:'Links need text that describes where they go. Avoid "click here" or "read more".', 
         howToFix:'Change link text to be specific: "View Chemistry Guide" instead of "click here".', 
-        priority:'important', canFix:true},
+        priority:'violation', canFix:true},
     'empty-heading-image-only': {
         title:'Heading Contains Only an Image', 
         plain:'This heading contains only an image. Screen readers treat this as an empty heading because they can\'t read the image as a heading.', 
         howToFix:'In LibGuides editor: Add text inside the heading alongside or instead of the image. Or move the image outside the heading tag entirely.', 
-        priority:'critical', canFix:true},
+        priority:'violation', canFix:true},
     'empty-heading-whitespace': {
         title:'Heading is Completely Empty', 
         plain:'This heading has no text at all - it\'s completely empty or contains only whitespace.', 
         howToFix:'In LibGuides editor: Delete this heading or add descriptive text to it.', 
-        priority:'critical', canFix:true},
+        priority:'violation', canFix:true},
     'empty-heading-libguides-box': {
         title:'Empty LibGuides Box Title', 
         plain:'This looks like a LibGuides box title heading. LibGuides sometimes creates empty headings automatically when a box title is missing.', 
         howToFix:'In LibGuides editor: Edit the box → Add a title in the "Box Title" field, or change the box type to "No Heading" in box settings.', 
-        priority:'critical', canFix:true},
+        priority:'violation', canFix:true},
     'heading-order': {
         title:'Heading Structure Problems', 
         plain:'Headings should go in order (H1 → H2 → H3), not skip levels.', 
         howToFix:'Change heading level in editor to correct sequence.', 
-        priority:'important', canFix:true},
+        priority:'warning', canFix:true},
     'page-has-heading-one': {
         title:'Missing Main Page Title (H1)', 
         plain:'Pages should have one H1 heading that describes the main content.', 
         howToFix:'Check that your page title is set. Edit Page → Page Title field.', 
-        priority:'important', canFix:true},
+        priority:'warning', canFix:true},
     'heading-with-link': {
         title:'Headings Used Entirely as Links',
         plain: 'This heading\'s entire text is a link. This can confuse screen readers - is it a heading for navigation or a clickable link?',
         howToFix: 'In LibGuides editor: Either (1) add non-linked text to the heading, or (2) if the entire section is clickable, consider using regular text with a link instead of a heading.',
-        priority: 'important', canFix: true},
+        priority: 'warning', canFix: true},
     'label': {
         title:'Form Fields Missing Labels', 
         plain:'Search boxes and input fields need visible labels so users know what to enter. Screen readers cannot tell what an unlabeled field is for.', 
         howToFix:'In LibGuides editor: If you embedded a form using HTML: Add a &lt;label&gt; tag in the code. Example: change &lt;input type="text" name="search"&gt; to &lt;label&gt;Search: &lt;input type="text" name="search"&gt;&lt;/label&gt;. OR add descriptive text above the form. If you created a form using a widget: add visible text above the input field describing what to enter.', 
-        priority:'critical', canFix:true},
+        priority:'violation', canFix:true},
     'button-name': {
-        title:'Buttons Without Labels', 
+        title:'Buttons Without Labels',
         plain:'Buttons need text or labels that describe what they do.', 
         howToFix:'Add text inside the button, or remove empty buttons.', 
-        priority:'critical', canFix:true},    
+        priority:'violation', canFix:true},    
     'color-contrast': {
         title:'Text Fails Contrast Requirements', 
         plain:'Text color doesn\'t have enough contrast with its background color. This makes it difficult or impossible for people with low vision or color blindness to read.',
-        howToFix:'In LibGuides editor: Change the text to a darker color or use the default text color (remove custom colors). The text and background must have a contrast ratio of at least 4.5:1 for normal text, or 3:1 for large text (18pt+ or 14pt+ bold). Use a contrast checker tool if needed, or simply use default colors which meet requirements.', 
-        priority:'important', canFix:true},
+        howToFix:'In LibGuides editor: Change the text to a darker color or use the default text color (remove custom colors). The text and background must have a contrast ratio of at least 4.5:1 for normal text, or 3:1 for large text (18pt+ or 14pt+ bold). Use the <a href="https://webaim.org/resources/contrastchecker/" target="_blank" rel="noopener" aria-label="WebAIM Contrast Checker (opens in new tab)">WebAIM Contrast Checker</a> to test your colors.', 
+        priority:'violation', canFix:true},
     'duplicate-id': {
         title: 'Duplicate ID Attributes',
         plain: 'Multiple elements have the same ID. This often happens when copying content from Google Docs or Word, which adds hidden IDs that get duplicated when you paste multiple times.',
         howToFix: 'In LibGuides editor: (1) Select all the content in this box, (2) Copy the content and paste it into a plain text editor (such as Notepad, TextEdit)to strip any hidden formatting and duplicate ID codes, (3) Then, copy the cleaned text from the plain text editor and paste it back into LibGuides, (4) Reapply any formatting you need (bold, italics, headings, links) using the LibGuides editor tools.',
-        priority: 'important', canFix: true},
+        priority: 'violation', canFix: true},
     'scope-attr-valid': {
         title:'Incorrect Use of Scope Attribute in Tables', 
         plain:'Table cells have a "scope" attribute, but this attribute should only be used on table header cells (<th>), not regular data cells (<td>).', 
         howToFix:'In LibGuides editor: Edit the table → Select the header row → Use the table toolbar to convert header cells from <td> to <th>. Or rebuild the table using the table tool with proper headers. If editing HTML directly: change change &lt;td scope="col"&gt; to &lt;th scope="col"&gt; for header cells.', 
-        priority:'important', canFix: true},
+        priority:'violation', canFix: true},
     'list': {
         title:'Improperly Structured List', 
         plain:'This list has structural problems - likely extra tags, nested elements, or formatting copied from Microsoft Word or Google Docs that breaks the list structure for screen readers.', 
         howToFix:'In LibGuides editor: (1) Delete the problematic list, (2) Recreate it using the list button in the toolbar (bullet or numbered list icon), (3) Type or paste content as plain text, then format. DO NOT copy formatted lists directly from Word/Docs. If you must paste from Word: paste into Notepad first to strip formatting, then paste into LibGuides.', 
-        priority:'important', canFix: true},
-    'landmark-one-main': {
-        title:'Multiple Main Content Areas', 
-        plain:'Page has multiple "main" regions. This is usually a LibGuides template issue.', 
-        howToFix:'SYSTEM ISSUE: Contact library-web-support@umich.edu.', 
-        priority:'system', canFix:false},
-    'region': {
-        title:'Content Not in Proper Sections', 
-        plain:'Some content isn\'t inside proper page sections.', 
-        howToFix:'Put main content in center content boxes. May be partially a template issue.', 
-        priority:'minor', canFix:'partial'},
-    'landmark-banner-is-top-level': {
-        title:'Banner Structure Issue', 
-        plain:'Page header structure problem - usually a LibGuides system issue.', 
-        howToFix:'SYSTEM ISSUE: You can ignore this or contact library-web-support@umich.edu.', 
-        priority:'system', canFix:false}
+        priority:'violation', canFix: true},
+    'frame-title': {
+        title: 'Embedded Content Missing Labels',
+        plain: 'Embedded content (like videos, databases, or widgets in iframes) is missing a title or label. Screen reader users can\'t tell what the embedded content is.',
+        howToFix: 'In LibGuides editor: If you embedded content using HTML code, add a title attribute to the iframe. Example: &lt;iframe src="..." title="Database Search Widget"&gt;&lt;/iframe&gt;. The title should describe what the embedded content is.',
+        priority: 'violation',
+        canFix: true
+    },
+    'empty-container': {
+        title: 'Empty Section or Container',
+        plain: 'This section or container has no content in it. Empty sections create confusion for screen reader users.',
+        howToFix: 'In LibGuides editor: Either (1) add content to this section/box, or (2) delete the empty section/box entirely. Check for LibGuides boxes with no content.',
+        priority: 'warning',
+        canFix: true
+    },
+    'th-has-data-cells': {
+        title: 'Table Headers Not Marked as Headers',
+        plain: 'This table has regular cells (&lt;td&gt;) for headers instead of proper header cells (&lt;th&gt;). Screen readers cannot identify which cells are headers, making the table incomprehensible.',
+        howToFix: 'In LibGuides editor: Right click the table -> Select Table Properties -> Use the table toolbar to mark cells as headers . Or rebuild the table using the table tool and designate the first row/column as headers. All column and row headers must use &lt;th&gt; tags.',
+        priority: 'violation',
+        canFix: true
+    },
+    'table-semantic-markup': {
+        title: 'Table Lacks Proper Structure', 
+        plain: 'This table is missing proper semantic structure elements like &lt;thead&gt;, &lt;tbody&gt;, or &lt;caption&gt;. This makes it harder for screen readers to navigate and understand the table.',
+        howToFix: 'In LibGuides editor: This is difficult to fix in the visual editor. Best practice: (1) Add a caption/title above the table using regular text to describe what the table shows, or (2) If editing HTML directly, wrap header rows in &lt;thead&gt; and data rows in &lt;tbody&gt;. For simple tables, having proper &lt;th&gt; headers is most critical.',
+        priority: 'best-practice', 
+        canFix: 'partial'
+    },
+    'link-new-window': {
+        title: 'Links Open in New Window Without Warning', 
+        plain: 'These links open in a new window or tab (target="_blank") but don\'t warn users. This is disorienting for screen reader users and people with cognitive disabilities who may not realize they\'ve left the current page.',
+        howToFix: 'In LibGuides editor: For links that open in new windows, add text like "(opens in new window)" or "(opens in new tab)" to the link text. Example: "View Database (opens in new window)". Or add a visual icon that indicates external links. Best Practice: Avoid opening links in new windows unless necessary.',
+        priority: 'warning', 
+        canFix: true
+    },
+    'iframe-unique-name': {
+        title: 'Multiple Embedded Videos/Iframes Share Same Name',
+        plain: 'Multiple iframes (embedded videos, widgets, etc.) have the same name attribute. Each iframe must have a unique name so screen readers can distinguish between them.',
+        howToFix: 'In LibGuides editor: If you embedded multiple YouTube videos or widgets using HTML: Edit the code and ensure each iframe has a unique name attribute, or remove the name attribute entirely (title attribute is sufficient). Example: change name="video" on each to name="video1", name="video2", etc. Or use LibGuides\' Media/Widget embed feature which handles this automatically.',
+        priority:'violation', 
+        canFix:true
+    },
+    'presentation-role-conflict': {
+        title: 'Decorative Element Has Conflicting Accessibility Markup',
+        plain: 'This element is marked as decorative (role="presentation") but also has ARIA attributes or tabindex, which is contradictory. Screen readers don\'t know whether to ignore it or announce it.',
+        howToFix: 'In LibGuides editor: If this element is decorative (like a spacer image or design element), remove any tabindex or ARIA attributes from it. If it\'s actually meaningful content, remove role="presentation". This often happens with email/newsletter embeds or complex widgets.',
+        priority: 'warning', 
+        canFix: 'partial'
+    },
+    'label-content-name-mismatch': {
+      title: 'Visible Label and Accessible Name Don\'t Match',
+      plain:'This element\'s visible text doesn\'t match what screen readers announce (the accessible name). For example, a button shows "Submit" but screen readers hear "Send Form". This confuses voice control users who say "click Submit" but it doesn\'t work.',
+      howToFix: 'In LibGuides editor: Make sure any aria-label or aria-labelledby matches the visible text on the element. If a button says "Search", don\'t give it aria-label="Find". Either remove the aria-label to use the visible text, or make them match exactly.',
+      priority:'violation', 
+      canFix:true
+    },
+    'link-not-distinguished': {
+      title: 'Links Not Visually Distinguished from Regular Text',
+      plain: 'These links have no underline and/or use the same color as surrounding text, making them difficult to distinguish as links for sighted users. People with low vision or color blindness cannot reliably tell that these are clickable.',
+      howToFix: 'In LibGuides editor: Select the link text and either (1) remove any custom text color to use the default link color (blue and underlined), or (2) ensure the link has a different color AND is underlined. This often happens when copying from Microsoft Word, remove the formatting and then re-create the link.',
+      priority: 'violation',
+      canFix: true
+    },
+    'layout-table': {
+      title:'Table Used for Page Layout', 
+      plain:'This table appears to be used for visual layout (arranging content in columns) rather than displaying actual data. Layout tables can cause navigation problems for screen reader users and are not recommended in modern HTML.',
+      howToFix:'In LibGuides editor: Replace the layout table with LibGuides\' built-in column features or boxes. If you must keep the table for layout, add role="presentation" to the table tag in HTML view. Example: &lt;table role="presentation"&gt;. Better solution: rebuild the layout using LibGuides boxes arranged side-by-side instead of tables.',
+      priority:'warning', 
+      canFix:true
+    }
   };
 
   function calculateAccessibilityScore(violations) {
     let score = 100;
     const violationsByRule = {};
+
     violations.forEach(v => {
-      if (!violationsByRule[v.id]) violationsByRule[v.id] = { impact: v.impact, count: 0 };
+      if (!violationsByRule[v.id]) {
+        const explanation = getExplanation(v.id);
+        violationsByRule[v.id] = {
+            priority: explanation.priority,
+            count: 0
+        };
+      }
       violationsByRule[v.id].count += v.nodes.length;
     });
+
     Object.values(violationsByRule).forEach(rule => {
-      const deductions = {critical: 8, serious: 5, moderate: 3, minor: 2};
-      const maxDeductions = {critical: 25, serious: 20, moderate: 15, minor: 10};
-      let deduction = rule.count * (deductions[rule.impact] || 2);
-      score -= Math.min(deduction, maxDeductions[rule.impact] || 15);
+      const deductions = {'violations': 10, // WCAG failures - most severe
+        'warning': 5, // Usability issues
+        'best-practice': 2, // Nice to have
+        'system': 0 // not user's fault
+        };
+      const maxDeductions = {'violations': 30, 'warning': 20, 'best-practice': 10, 'system': 0};
+      let deduction = rule.count * (deductions[rule.priority] || 5);
+      score -= Math.min(deduction, maxDeductions[rule.priority] || 20);
     });
     return Math.max(15, Math.round(score));
   }
@@ -256,6 +323,130 @@
     const invalidScope = Array.from(container.querySelectorAll('td[scope], td[headers]'));
     if(invalidScope.length) violations.push({id:'scope-attr-valid', impact:'serious', help:'Invalid Scope Attribute on Table Cells', description:'The scope attribute should only be used on <th> elements, not <td> elements.', nodes:invalidScope.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
 
+    // Iframes without titles (embedded content)
+    const unlabeledIframes = Array.from(container.querySelectorAll('iframe')).filter(iframe => {
+        const hasTitle = iframe.hasAttribute('title') && iframe.getAttribute('title').trim().length > 0;
+        const hasAriaLabel = iframe.hasAttribute('aria-label') && iframe.getAttribute('aria-label').trim().length > 0;
+        const hasAriaLabelledby = iframe.hasAttribute('aria-labelledby');
+        return !hasTitle && !hasAriaLabel && !hasAriaLabelledby;
+    });
+    if(unlabeledIframes.length) violations.push({id: 'frame-title', impact: 'serious', help:'Iframes Missing Title Attributes', description:'Embedded content (iframes) must have descriptive titles.', nodes:unlabeledIframes.map(el => ({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0, 150)}))});
+
+    // Empty containers/sections (LibGuides boxes and general containers)
+    const emptyContainers = Array.from(container.querySelectorAll('[id^="s-lg-box"], section, article, aside, div[role="regiion"]')).filter(el => {
+        const text = el.textContent.trim();
+        const hasMedia = el.querySelector('img, video, audio, iframe, canvas, svg');
+        const hasInteractive = el.querySelector('input, button, select, textarea, a, form');
+        return text.length === 0 && !hasMedia && !hasInteractive;
+    });
+    if(emptyContainers.length) violations.push({id: 'empty-container', impact: 'moderate', help: 'Empty Sections or Containers', description: 'Empty sections create navigation issue for screen reader users.', nodes: emptyContainers.map(el => ({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0, 150)}))});
+
+    // Tables without proper headers
+    const tablesWithoutHeaders = Array.from(container.querySelectorAll('table')).filter(table => {
+      const hasThElements = table.querySelectorAll('th').length > 0;
+      const hasCells = table.querySelectorAll('td').length > 0;
+      // Flag tables that have data cells but no header cells
+      return hasCells && !hasThElements;
+    });
+    if(tablesWithoutHeaders.length) violations.push({id:'th-has-data-cells', impact:'serious', help:'Tables Missing Header Markup', description:'Tables must have header cells (&lt;th&gt;) to identify column/row headers.', nodes:tablesWithoutHeaders.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0, 150)}))});
+
+    // Tables without semantic structure (missing thead/tbody/caption)
+    const tablesWithoutStructure = Array.from(container.querySelectorAll('table')).filter(table => {
+      const hasThead = table.querySelector('thead') !== null;
+      const hasTbody = table.querySelector('tbody') !== null;
+      const hasCaption = table.querySelector('caption') !== null;
+
+      // Flag if missing all semantic elements
+      return !hasThead && !hasTbody && !hasCaption;
+    });
+    if(tablesWithoutStructure.length) violations.push({id: 'table-semantic-markup', impact: 'moderate', help:'Tables Missing Semantic Structure', description:'Tables should use &lt;thead&gt;, &lt;tbody&gt;, and/or &lt;caption&gt; for better screen reader navigation.', nodes: tablesWithoutStructure.map(el => ({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0, 150)}))});
+
+    // Links that open in new window without warning
+    const newWindowLinks = Array.from(container.querySelectorAll('a[target="_blank"]')).filter(link => {
+      const text = link.textContent.toLowerCase();
+      const hasWarning = text.includes('new window') || text.includes('new tab') || text.includes('opens in');
+      const hasAriaLabel = link.hasAttribute('aria-label') && link.getAttribute('aria-label').toLowerCase().includes('new window');
+      const hasTitle = link.hasAttribute('title') && link.getAttribute('title').toLowerCase('new window');
+      const hasIcon = link.querySelector('[class*="external"], [class*=new-window], .fa-external-link');
+      return !hasWarning && !hasAriaLabel && !hasTitle && !hasIcon;
+    });
+    if(newWindowLinks.length) violations.push({id:'link-new-window', impact:'moderate', help:'Links Open in New Window Without Warning', description:'Links that open in new windows should inform users.', nodes:newWindowLinks.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
+
+    // Duplicate iframe names
+    const iframeNames = {};
+    Array.from(container.querySelectorAll('iframe[name]')).forEach(iframe => {
+      const name = iframe.getAttribute('name');
+      if (name) {
+        if (!iframeNames[name]) iframeNames[name] = [];
+        iframeNames[name].push(iframe);
+      }
+    });
+
+    const duplicateNameIframes = [];
+    Object.entries(iframeNames).forEach(([name, iframes]) => {
+      if(iframes.length > 1){
+        iframes.forEach(iframe => duplicateNameIframes.push(iframe));
+      }
+    });
+    if(duplicateNameIframes.length) violations.push({id:'iframe-unique-name', impact:'serious', help:'Iframes Have Duplicate Names', description:'Multiple iframes share the same name attribute. Each must be unique.', nodes:duplicateNameIframes.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
+
+    // Label/name mismatch - visible text doesn't match accessible name
+    const labelMismatches = Array.from(container.querySelectorAll('button, a, input[type="submit"], input[type="button"]')).filter(el => {
+      const visibleText = el.textContent.trim().toLowerCase();
+      const ariaLabel = (el.getAttribute('aria-label') || '').trim().toLowerCase();
+      const ariaLabelledby = el.getAttribute('aria-labelledby');
+
+      // check if aria-label exists and doesn't contain the visible text
+      if (ariaLabel && visibleText && !ariaLabel.includes(visibleText) && !visibleText.includes(ariaLabel)) {
+        return true;
+      }
+
+      return false;
+    })
+    if(labelMismatches.length) violations.push({id: 'label-content-name-mismatch', impact:'serious', help: 'Visible Label Does Not Match Accessible Name', description: 'The visible text and screen reader announcement don\'t match.', nodes: labelMismatches.map(el => ({target: [getCssSelector(el, true)], html: el.outerHTML.substring(0, 150)}))});
+
+    // Links not visually distinguished (no underline, same color as text)
+    const invisibleLinks = Array.from(container.querySelectorAll('a[href]')).filter(link => {
+      const computedStyle = window.getComputedStyle(link);
+      const parentStyle = link.parentElement ? window.getComputedStyle(link.parentElement) : null;
+      
+      const hasUnderline = computedStyle.textDecoration.includes('underline') || 
+                          computedStyle.textDecorationLine === 'underline' ||
+                          computedStyle.borderBottom !== 'none';
+      
+      const linkColor = computedStyle.color;
+      const parentColor = parentStyle ? parentStyle.color : null;
+      
+      // Flag if no underline AND same color as parent text
+      const sameColorAsParent = linkColor === parentColor;
+      
+      return !hasUnderline && sameColorAsParent;
+    });
+    if(invisibleLinks.length) violations.push({id:'link-not-distinguished', impact:'serious', help:'Links Not Visually Distinguished', description:'Links must be underlined or have a different color from surrounding text.', nodes:invisibleLinks.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
+
+    // Layout tables (tables used for visual layout instead of data)
+    const layoutTables = Array.from(container.querySelectorAll('table:not([role="presentation"])')).filter(table => {
+        const hasThElements = table.querySelectorAll('th').length > 0;
+        const hasCells = table.querySelectorAll('td').length > 0;
+        
+        // Heuristics for layout tables:
+        // 1. Has cells but no <th> headers (data tables should have headers)
+        // 2. Contains mostly non-text content (images, nested divs)
+        // 3. Has very few rows (1-2 rows often = layout, not data)
+        
+        const rowCount = table.querySelectorAll('tr').length;
+        const cellsWithImages = table.querySelectorAll('td img, td div').length;
+        const totalCells = table.querySelectorAll('td').length;
+        
+        const likelyLayout = !hasThElements && hasCells && (
+            rowCount <= 2 || // Very few rows
+            (cellsWithImages / totalCells) > 0.5 // More than half cells have images/divs
+        );
+        
+        return likelyLayout;
+    });
+    if(layoutTables.length) violations.push({id:'layout-table', impact:'moderate', help:'Table Used for Layout Instead of Data', description:'Tables should only be used for tabular data, not visual layout. Layout tables cause navigation issues.', nodes:layoutTables.map(el=>({target:[getCssSelector(el, true)], html:el.outerHTML.substring(0,150)}))});
+
     // Empty headings
     violations.push(...checkEmptyHeadings(container));
     
@@ -359,7 +550,7 @@
         try {
           await new Promise(r => setTimeout(r, Math.random() * 100));
           axeResults = await axe.run(container, {runOnly: ['wcag2a', 'wcag2aa', 'best-practice'], resultTypes: ['violations']});
-          axeResults.violations = axeResults.violations.filter(v => v.id !== 'empty-heading' && v.id !== 'image-alt');
+          axeResults.violations = axeResults.violations.filter(v => v.id !== 'empty-heading' && v.id !== 'image-alt' && v.id !== 'frame-title');
         } catch (axeError) {console.warn('Axe error on', pages[i].url);}
         
         results.push({page: pages[i], violations: [...axeResults.violations, ...runCustomChecks(container)]});
@@ -397,6 +588,37 @@
       <main id="a11y-results" style="flex:1;overflow-y:auto;padding:20px;color:#333;text-align:center;font-family:'Lexend',sans-serif;">Initializing scanner...<br><br>⏳</main>
     `;
     document.body.appendChild(sidebar);
+
+    // Auto-close after 15 minutes of inactivity
+    let inactivityTimer;
+    const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in millseconds
+
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        // Show a gentle notification before closing
+        const header = document.getElementById('a11y-header');
+        if (header) {
+          header.style.opacity = '0.6';
+          const notice = document.createElement('div');
+          notice.style.cssText = 'background:#ffcb05;color:#00274c;padding:10px;text-align:center;font-size:13px;font-family:Lexend,sans-serif;';
+          notice.textContent = 'Scanner closed due to inactivity. Refresh the page to scan again.';
+          header.insertAdjacentElement('afterend', notice);
+        }
+        setTimeout(() => {
+          sidebar.style.animation = 'slideOut 0.3s ease-in';
+          sidebar.addEventListener('animationend', () => sidebar.remove());
+        }, 2000);
+      }, INACTIVITY_TIMEOUT);
+    }
+
+    // Reset timer on any interaction with the sidebar
+    sidebar.addEventListener('click', resetInactivityTimer);
+    sidebar.addEventListener('scroll', resetInactivityTimer);
+    sidebar.addEventListener('keydown', resetInactivityTimer);
+
+    // Start the timer
+    resetInactivityTimer();
     
     document.getElementById('a11y-close-btn').onclick = () => {
       sidebar.style.animation = 'slideOut 0.3s ease-in';
@@ -441,6 +663,9 @@
             && v.id !== 'duplicate-id' 
             && v.id !== 'scope-attr-valid'
             && v.id !== 'image-alt'
+            && v.id !== 'frame-title'
+            && v.id !== 'th-has-data-cells'
+            && v.id !== 'label-content-name-mismatch'
         );
 
         displaySinglePageResults({ violations: [...filteredAxeViolations, ...runCustomChecks(container)] });
@@ -506,6 +731,14 @@
         </div>
         </details>`;
     });
+
+    // Feedback form link
+    html += `<div style="text-align:center;padding:20px;margin-top:20px;border-top:1px solid #e5e7eb;">
+      <a href="https://forms.gle/R4tf8NLJ9kbNpEDc8" target="_blank" rel="noopener" style="color:#00274c;text-decoration:underline;font-size:14px;font-family:'Lexend',sans-serif;">
+        Let us know what you think about the tool! 📝
+      </a>
+      </div>`;
+
     document.getElementById('a11y-results').innerHTML = html;
     }
     
@@ -537,8 +770,8 @@
         violations.forEach(v => {const exp = getExplanation(v.id); (exp.canFix === false ? systemIssues : canFix).push({ violation: v, explanation: exp });});
 
         const circumference = 339.292, offset = circumference - (score / 100) * circumference;
-        const priorityColors = {critical: "#c23c3c", important: "#d66a12", minor: "#1493a0"};
-        const priorityBackgrounds = {critical: "rgba(194, 60, 60, 0.04)", important: "rgba(214, 106, 18, 0.04)", minor: "rgba(20, 147, 160, 0.04)"};
+        const priorityColors = {'violation': "#c23c3c", 'warning': "#d66a12", 'best-practice': "#1493a0"};
+        const priorityBackgrounds = {'violation': "rgba(194, 60, 60, 0.04)", 'warning': "rgba(214, 106, 18, 0.04)", 'best-practice': "rgba(20, 147, 160, 0.04)"};
 
         let html = `<div style="text-align:center;padding:25px 20px 20px 20px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;background:#fafafa;font-family:'Lexend',sans-serif;">
         <div style="font-size:14px;font-weight:600;color:#4a4a4a;margin-bottom:15px;text-transform:uppercase;letter-spacing:1px;">Accessibility Score</div>
@@ -623,12 +856,13 @@
     });
     }
     if(typeof axe === 'undefined'){
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js';
-    script.onload = initScanner;
-    script.onerror = () => alert('Failed to load axe-core. Check your internet connection.');
-    document.head.appendChild(script);
-    } else {
-    initScanner();
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js';
+      script.onload = initScanner;
+      script.onerror = () => alert('Failed to load axe-core. Check your internet connection.');
+      document.head.appendChild(script);
+    } 
+    else {
+      initScanner();
     }
-    })();
+  })();
